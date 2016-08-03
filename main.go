@@ -4,6 +4,7 @@ import (
 	"cwlogs_tee"
 	"log"
 	"os"
+	"time"
 )
 
 func init() {
@@ -20,6 +21,7 @@ func main() {
 	tee := &cwlogs_tee.CWLogsTee{
 		In:  os.Stdin,
 		Out: os.Stdout,
+		Now: time.Now,
 	}
 
 	err := cwlogs_tee.ParseFlag(tee)

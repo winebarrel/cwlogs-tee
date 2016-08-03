@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"io"
 	"regexp"
 	"strings"
@@ -17,6 +18,7 @@ type CWLogsTee struct {
 	LogStreamName string
 	In            io.Reader
 	Out           io.Writer
+	Now           func() time.Time
 }
 
 func (tee *CWLogsTee) scan(fn func(string) error) (err error) {
@@ -37,25 +39,26 @@ func (tee *CWLogsTee) scan(fn func(string) error) (err error) {
 	return
 }
 
-func (tee *CWLogsTee) isGroupExist(svc *cloudwatchlogs.CloudWatchLogs) (exist bool, err error) {
-
+func (tee *CWLogsTee) isGroupExist(svc cloudwatchlogsiface.CloudWatchLogsAPI) (exist bool, err error) {
 	params := &cloudwatchlogs.DescribeLogGroupsInput{
 		LogGroupNamePrefix: aws.String(tee.LogGroupName),
-		Limit:              aws.Int64(1),
 	}
 
-	resp, err := svc.DescribeLogGroups(params)
+	err = svc.DescribeLogGroupsPages(params, func(page *cloudwatchlogs.DescribeLogGroupsOutput, lastPage bool) bool {
+		for _, group := range page.LogGroups {
+			if *group.LogGroupName == tee.LogGroupName {
+				exist = true
+				return false
+			}
+		}
 
-	if err != nil {
-		return
-	}
-
-	exist = len(resp.LogGroups) > 0
+		return !lastPage
+	})
 
 	return
 }
 
-func (tee *CWLogsTee) createLogGroup(svc *cloudwatchlogs.CloudWatchLogs) (err error) {
+func (tee *CWLogsTee) createLogGroup(svc cloudwatchlogsiface.CloudWatchLogsAPI) (err error) {
 	params := &cloudwatchlogs.CreateLogGroupInput{
 		LogGroupName: aws.String(tee.LogGroupName),
 	}
@@ -65,11 +68,10 @@ func (tee *CWLogsTee) createLogGroup(svc *cloudwatchlogs.CloudWatchLogs) (err er
 	return
 }
 
-func (tee *CWLogsTee) isStreamExist(svc *cloudwatchlogs.CloudWatchLogs) (exist bool, err error) {
+func (tee *CWLogsTee) isStreamExist(svc cloudwatchlogsiface.CloudWatchLogsAPI) (exist bool, err error) {
 	params := &cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(tee.LogGroupName),
 		LogStreamNamePrefix: aws.String(tee.LogStreamName),
-		Limit:               aws.Int64(1),
 	}
 
 	err = svc.DescribeLogStreamsPages(params, func(page *cloudwatchlogs.DescribeLogStreamsOutput, lastPage bool) bool {
@@ -83,14 +85,10 @@ func (tee *CWLogsTee) isStreamExist(svc *cloudwatchlogs.CloudWatchLogs) (exist b
 		return !lastPage
 	})
 
-	if err != nil {
-		return
-	}
-
 	return
 }
 
-func (tee *CWLogsTee) createLogStream(svc *cloudwatchlogs.CloudWatchLogs) (err error) {
+func (tee *CWLogsTee) createLogStream(svc cloudwatchlogsiface.CloudWatchLogsAPI) (err error) {
 	params := &cloudwatchlogs.CreateLogStreamInput{
 		LogGroupName:  aws.String(tee.LogGroupName),
 		LogStreamName: aws.String(tee.LogStreamName),
@@ -101,12 +99,12 @@ func (tee *CWLogsTee) createLogStream(svc *cloudwatchlogs.CloudWatchLogs) (err e
 	return
 }
 
-func (tee *CWLogsTee) putLogsEvents(svc *cloudwatchlogs.CloudWatchLogs, message string, sequenceToken *string) (nextToken *string, err error) {
+func (tee *CWLogsTee) putLogsEvents(svc cloudwatchlogsiface.CloudWatchLogsAPI, message string, sequenceToken *string) (nextToken *string, err error) {
 	params := &cloudwatchlogs.PutLogEventsInput{
 		LogEvents: []*cloudwatchlogs.InputLogEvent{
 			{
 				Message:   aws.String(message),
-				Timestamp: aws.Int64(time.Now().UnixNano() / int64(time.Millisecond)),
+				Timestamp: aws.Int64(tee.Now().UnixNano() / int64(time.Millisecond)),
 			},
 		},
 		LogGroupName:  aws.String(tee.LogGroupName),
@@ -138,7 +136,7 @@ func (tee *CWLogsTee) putLogsEvents(svc *cloudwatchlogs.CloudWatchLogs, message 
 	return
 }
 
-func (tee *CWLogsTee) put(svc *cloudwatchlogs.CloudWatchLogs, message string, sequenceToken *string) (nextToken *string, err error) {
+func (tee *CWLogsTee) put(svc cloudwatchlogsiface.CloudWatchLogsAPI, message string, sequenceToken *string) (nextToken *string, err error) {
 	exist, err := tee.isGroupExist(svc)
 
 	if err != nil {
