@@ -9,7 +9,7 @@ go-get:
 	go get github.com/aws/aws-sdk-go
 
 cwlogs-tee: go-get main.go $(SRC)
-	GOPATH=$(RUNTIME_GOPATH) go build
+	GOPATH=$(RUNTIME_GOPATH) go build -o cwlogs-logs
 
 clean:
 	rm -f cwlogs-tee cwlogs-tee.exe *.gz *.zip
