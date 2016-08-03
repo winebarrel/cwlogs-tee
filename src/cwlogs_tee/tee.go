@@ -18,6 +18,7 @@ type CWLogsTee struct {
 	LogStreamName string
 	In            io.Reader
 	Out           io.Writer
+	Now           func() time.Time
 }
 
 func (tee *CWLogsTee) scan(fn func(string) error) (err error) {
@@ -103,7 +104,7 @@ func (tee *CWLogsTee) putLogsEvents(svc cloudwatchlogsiface.CloudWatchLogsAPI, m
 		LogEvents: []*cloudwatchlogs.InputLogEvent{
 			{
 				Message:   aws.String(message),
-				Timestamp: aws.Int64(time.Now().UnixNano() / int64(time.Millisecond)),
+				Timestamp: aws.Int64(tee.Now().UnixNano() / int64(time.Millisecond)),
 			},
 		},
 		LogGroupName:  aws.String(tee.LogGroupName),

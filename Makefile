@@ -17,6 +17,7 @@ go-get:
 	go get github.com/aws/aws-sdk-go
 	go get github.com/golang/mock/gomock
 	go get github.com/stretchr/testify
+	go get github.com/bluele/go-timecop
 
 cwlogs-tee: go-get main.go $(SRC)
 	GOPATH=$(RUNTIME_GOPATH) go build -o $(BIN)
