@@ -101,7 +101,7 @@ func (tee *CWLogsTee) createLogStream(svc *cloudwatchlogs.CloudWatchLogs) (err e
 	return
 }
 
-func (tee *CWLogsTee) putLogsEvents(svc *cloudwatchlogs.CloudWatchLogs, message string, sequenceToken *string) (err error) {
+func (tee *CWLogsTee) putLogsEvents(svc *cloudwatchlogs.CloudWatchLogs, message string, sequenceToken *string) (nextToken *string, err error) {
 	params := &cloudwatchlogs.PutLogEventsInput{
 		LogEvents: []*cloudwatchlogs.InputLogEvent{
 			{
@@ -117,9 +117,10 @@ func (tee *CWLogsTee) putLogsEvents(svc *cloudwatchlogs.CloudWatchLogs, message 
 		params.SequenceToken = sequenceToken
 	}
 
-	_, err = svc.PutLogEvents(params)
+	resp, err := svc.PutLogEvents(params)
 
 	if err == nil {
+		nextToken = resp.NextSequenceToken
 		return
 	}
 
@@ -130,14 +131,14 @@ func (tee *CWLogsTee) putLogsEvents(svc *cloudwatchlogs.CloudWatchLogs, message 
 		md := re.FindStringSubmatch(err.Error())
 
 		if len(md) == 2 {
-			err = tee.putLogsEvents(svc, message, aws.String(md[1]))
+			nextToken, err = tee.putLogsEvents(svc, message, aws.String(md[1]))
 		}
 	}
 
 	return
 }
 
-func (tee *CWLogsTee) put(svc *cloudwatchlogs.CloudWatchLogs, message string) (err error) {
+func (tee *CWLogsTee) put(svc *cloudwatchlogs.CloudWatchLogs, message string, sequenceToken *string) (nextToken *string, err error) {
 	exist, err := tee.isGroupExist(svc)
 
 	if err != nil {
@@ -166,18 +167,25 @@ func (tee *CWLogsTee) put(svc *cloudwatchlogs.CloudWatchLogs, message string) (e
 		}
 	}
 
-	err = tee.putLogsEvents(svc, message, nil)
+	nextToken, err = tee.putLogsEvents(svc, message, sequenceToken)
 
 	return
 }
 
 func (tee *CWLogsTee) Tee() (err error) {
 	svc := cloudwatchlogs.New(session.New())
+	var sequenceToken *string
 
-	err = tee.scan(func(line string) error {
-		tee.put(svc, line)
+	err = tee.scan(func(line string) (err error) {
+		sequenceToken, err = tee.put(svc, line, sequenceToken)
+
+		if err != nil {
+			return
+		}
+
 		fmt.Fprintln(tee.Out, line)
-		return nil
+
+		return
 	})
 
 	return
