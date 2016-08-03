@@ -1,7 +1,7 @@
 %define  debug_package %{nil}
 
 Name:   cwlogs-tee
-Version:  0.1.0
+Version:  0.1.1
 Release:  1%{?dist}
 Summary:  cwlogs-tee is a tee command for CloudWatch Logs.
 
