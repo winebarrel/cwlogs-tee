@@ -28,3 +28,8 @@ done | cwlogs-tee -g my-group -s my-stream
 ```
 brew install https://raw.githubusercontent.com/winebarrel/cwlogs-tee/master/homebrew/cwlogs-tee.rb
 ```
+
+## Demo
+
+[![asciicast](https://asciinema.org/a/81712.png)](https://asciinema.org/a/81712)
+
