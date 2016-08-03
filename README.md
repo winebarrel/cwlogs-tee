@@ -2,6 +2,8 @@
 
 `tee` command for CloudWatch Logs.
 
+[![Build Status](https://travis-ci.org/winebarrel/cwlogs-tee.svg?branch=master)](https://travis-ci.org/winebarrel/cwlogs-tee)
+
 ## Usage
 
 ```
