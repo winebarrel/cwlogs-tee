@@ -325,47 +325,6 @@ func TestPut(t *testing.T) {
 
 	mockcwlogs := mockaws.NewMockCloudWatchLogsAPI(ctrl)
 
-	mockcwlogs.EXPECT().DescribeLogGroupsPages(
-		&cloudwatchlogs.DescribeLogGroupsInput{
-			LogGroupNamePrefix: aws.String("my-group"),
-		},
-		gomock.Any(),
-	).Do(func(_ *cloudwatchlogs.DescribeLogGroupsInput, fn func(*cloudwatchlogs.DescribeLogGroupsOutput, bool) bool) {
-		fn(
-			&cloudwatchlogs.DescribeLogGroupsOutput{
-				LogGroups: []*cloudwatchlogs.LogGroup{
-					&cloudwatchlogs.LogGroup{
-						LogGroupName: aws.String("my-group"),
-					},
-				},
-			},
-			true,
-		)
-	}).Return(
-		nil,
-	)
-
-	mockcwlogs.EXPECT().DescribeLogStreamsPages(
-		&cloudwatchlogs.DescribeLogStreamsInput{
-			LogGroupName:        aws.String("my-group"),
-			LogStreamNamePrefix: aws.String("my-stream"),
-		},
-		gomock.Any(),
-	).Do(func(_ *cloudwatchlogs.DescribeLogStreamsInput, fn func(*cloudwatchlogs.DescribeLogStreamsOutput, bool) bool) {
-		fn(
-			&cloudwatchlogs.DescribeLogStreamsOutput{
-				LogStreams: []*cloudwatchlogs.LogStream{
-					&cloudwatchlogs.LogStream{
-						LogStreamName: aws.String("my-stream"),
-					},
-				},
-			},
-			true,
-		)
-	}).Return(
-		nil,
-	)
-
 	mockcwlogs.EXPECT().PutLogEvents(
 		&cloudwatchlogs.PutLogEventsInput{
 			LogEvents: []*cloudwatchlogs.InputLogEvent{

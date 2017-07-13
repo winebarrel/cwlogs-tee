@@ -137,6 +137,15 @@ func (tee *CWLogsTee) putLogsEvents(svc cloudwatchlogsiface.CloudWatchLogsAPI, m
 }
 
 func (tee *CWLogsTee) put(svc cloudwatchlogsiface.CloudWatchLogsAPI, message string, sequenceToken *string) (nextToken *string, err error) {
+	nextToken, err = tee.putLogsEvents(svc, message, sequenceToken)
+
+	return
+}
+
+func (tee *CWLogsTee) Tee() (err error) {
+	svc := cloudwatchlogs.New(session.New())
+	var sequenceToken *string
+
 	exist, err := tee.isGroupExist(svc)
 
 	if err != nil {
@@ -164,15 +173,6 @@ func (tee *CWLogsTee) put(svc cloudwatchlogsiface.CloudWatchLogsAPI, message str
 			return
 		}
 	}
-
-	nextToken, err = tee.putLogsEvents(svc, message, sequenceToken)
-
-	return
-}
-
-func (tee *CWLogsTee) Tee() (err error) {
-	svc := cloudwatchlogs.New(session.New())
-	var sequenceToken *string
 
 	err = tee.scan(func(line string) (err error) {
 		sequenceToken, err = tee.put(svc, line, sequenceToken)
