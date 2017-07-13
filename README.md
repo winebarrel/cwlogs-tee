@@ -9,9 +9,9 @@
 ```
 Usage of cwlogs-tee:
   -g string
-      log group name
+    	log group name
   -s string
-      log stream name
+    	log stream name
   -v	show version
 ```
 
