@@ -1,3 +1,9 @@
+cwlogs-tee (0.1.4) unstable; urgency=low
+
+  * Add exponential backoff.
+
+ -- Genki Sugawara <sgwr_dts@yahoo.co.jp>  Thu, 13 Jul 2017 17:55:29 +0900
+
 cwlogs-tee (0.1.3) unstable; urgency=low
 
   * Fix Describe* API call.

@@ -1,7 +1,7 @@
 require 'formula'
 
 class CwlogsTee < Formula
-  VERSION = '0.1.3'
+  VERSION = '0.1.4'
 
   homepage 'https://github.com/winebarrel/cwlogs-tee'
   url "https://github.com/winebarrel/cwlogs-tee/releases/download/v#{VERSION}/cwlogs-tee-v#{VERSION}-darwin-amd64.gz"
