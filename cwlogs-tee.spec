@@ -1,24 +1,24 @@
 %define  debug_package %{nil}
 
-Name:   cwlogs-tee
-Version:  0.1.2
-Release:  1%{?dist}
-Summary:  cwlogs-tee is a tee command for CloudWatch Logs.
+Name:    cwlogs-tee
+Version: 0.1.3
+Release: 1%{?dist}
+Summary: cwlogs-tee is a tee command for CloudWatch Logs.
 
-Group:    Development/Tools
-License:  MIT License
-URL:    https://github.com/winebarrel/cwlogs-tee
-Source0:  %{name}_%{version}.tar.gz
-# https://github.com/winebarrel/cwlogs-tee/archive/v0.1.0.tar.gz
+Group:   Development/Tools
+License: MIT License
+URL:     https://github.com/winebarrel/cwlogs-tee
+Source0: %{name}.tar.gz
 
 %description
 cwlogs-tee is a tee command for CloudWatch Logs.
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n src
 
 %build
 make
+make test
 
 %install
 rm -rf %{buildroot}

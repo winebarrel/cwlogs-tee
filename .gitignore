@@ -1,4 +1,8 @@
 /cwlogs-tee
-/cwlogs-tee.exe
 *.gz
-*.zip
+/debian/cwlogs-tee.debhelper.log
+/debian/cwlogs-tee.substvars
+/debian/cwlogs-tee/
+/debian/files
+/pkg/cwlogs-tee*
+.DS_Store

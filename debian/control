@@ -1,0 +1,12 @@
+Source: cwlogs-tee
+Section: utils
+Priority: optional
+Maintainer: Genki Sugawara <sgwr_dts@yahoo.co.jp>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.4
+Homepage: https://github.com/winebarrel/cwlogs-tee
+
+Package: cwlogs-tee
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: cwlogs-tee is a tee command for CloudWatch Logs.
