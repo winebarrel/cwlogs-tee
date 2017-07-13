@@ -4,14 +4,43 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
+	"github.com/cenkalti/backoff"
 	"io"
 	"regexp"
 	"strings"
 	"time"
 )
+
+func backoffRateExceeded(operation func() error) (err error) {
+	ticker := backoff.NewTicker(backoff.NewExponentialBackOff())
+
+	for _ = range ticker.C {
+		err = operation()
+
+		if err == nil {
+			ticker.Stop()
+			break
+		}
+
+		awsErr, ok := err.(awserr.Error)
+
+		if !ok {
+			ticker.Stop()
+			break
+		}
+
+		if awsErr.Code() != "ThrottlingException" {
+			ticker.Stop()
+			break
+		}
+	}
+
+	return err
+}
 
 type CWLogsTee struct {
 	LogGroupName  string
@@ -44,15 +73,19 @@ func (tee *CWLogsTee) isGroupExist(svc cloudwatchlogsiface.CloudWatchLogsAPI) (e
 		LogGroupNamePrefix: aws.String(tee.LogGroupName),
 	}
 
-	err = svc.DescribeLogGroupsPages(params, func(page *cloudwatchlogs.DescribeLogGroupsOutput, lastPage bool) bool {
-		for _, group := range page.LogGroups {
-			if *group.LogGroupName == tee.LogGroupName {
-				exist = true
-				return false
+	err = backoffRateExceeded(func() error {
+		err = svc.DescribeLogGroupsPages(params, func(page *cloudwatchlogs.DescribeLogGroupsOutput, lastPage bool) bool {
+			for _, group := range page.LogGroups {
+				if *group.LogGroupName == tee.LogGroupName {
+					exist = true
+					return false
+				}
 			}
-		}
 
-		return !lastPage
+			return !lastPage
+		})
+
+		return err
 	})
 
 	return
@@ -63,7 +96,10 @@ func (tee *CWLogsTee) createLogGroup(svc cloudwatchlogsiface.CloudWatchLogsAPI) 
 		LogGroupName: aws.String(tee.LogGroupName),
 	}
 
-	_, err = svc.CreateLogGroup(params)
+	err = backoffRateExceeded(func() error {
+		_, err = svc.CreateLogGroup(params)
+		return err
+	})
 
 	return
 }
@@ -74,15 +110,19 @@ func (tee *CWLogsTee) isStreamExist(svc cloudwatchlogsiface.CloudWatchLogsAPI) (
 		LogStreamNamePrefix: aws.String(tee.LogStreamName),
 	}
 
-	err = svc.DescribeLogStreamsPages(params, func(page *cloudwatchlogs.DescribeLogStreamsOutput, lastPage bool) bool {
-		for _, stream := range page.LogStreams {
-			if *stream.LogStreamName == tee.LogStreamName {
-				exist = true
-				return false
+	err = backoffRateExceeded(func() error {
+		err = svc.DescribeLogStreamsPages(params, func(page *cloudwatchlogs.DescribeLogStreamsOutput, lastPage bool) bool {
+			for _, stream := range page.LogStreams {
+				if *stream.LogStreamName == tee.LogStreamName {
+					exist = true
+					return false
+				}
 			}
-		}
 
-		return !lastPage
+			return !lastPage
+		})
+
+		return err
 	})
 
 	return
@@ -94,7 +134,10 @@ func (tee *CWLogsTee) createLogStream(svc cloudwatchlogsiface.CloudWatchLogsAPI)
 		LogStreamName: aws.String(tee.LogStreamName),
 	}
 
-	_, err = svc.CreateLogStream(params)
+	err = backoffRateExceeded(func() error {
+		_, err = svc.CreateLogStream(params)
+		return err
+	})
 
 	return
 }
@@ -115,7 +158,12 @@ func (tee *CWLogsTee) putLogsEvents(svc cloudwatchlogsiface.CloudWatchLogsAPI, m
 		params.SequenceToken = sequenceToken
 	}
 
-	resp, err := svc.PutLogEvents(params)
+	var resp *cloudwatchlogs.PutLogEventsOutput
+
+	err = backoffRateExceeded(func() error {
+		resp, err = svc.PutLogEvents(params)
+		return err
+	})
 
 	if err == nil {
 		nextToken = resp.NextSequenceToken
@@ -138,7 +186,6 @@ func (tee *CWLogsTee) putLogsEvents(svc cloudwatchlogsiface.CloudWatchLogsAPI, m
 
 func (tee *CWLogsTee) put(svc cloudwatchlogsiface.CloudWatchLogsAPI, message string, sequenceToken *string) (nextToken *string, err error) {
 	nextToken, err = tee.putLogsEvents(svc, message, sequenceToken)
-
 	return
 }
 

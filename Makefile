@@ -21,6 +21,7 @@ go-get:
 	go get github.com/golang/mock/gomock
 	go get github.com/stretchr/testify
 	go get github.com/bluele/go-timecop
+	go get github.com/cenkalti/backoff
 
 $(PROGRAM): $(SRC)
 ifeq ($(GOOS),linux)
