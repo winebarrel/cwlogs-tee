@@ -12,6 +12,7 @@ Usage of cwlogs-tee:
       log group name
   -s string
       log stream name
+  -v	show version
 ```
 
 ```sh
